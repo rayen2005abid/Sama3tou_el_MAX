@@ -44,9 +44,9 @@ export function TradeModal({ isOpen, onClose, symbol, currentPrice, action = "BU
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>{action} {symbol}</DialogTitle>
+                    <DialogTitle>{action} {symbol} <span className="text-muted-foreground text-sm font-normal">(Virtual)</span></DialogTitle>
                     <DialogDescription>
-                        Current Price: {currentPrice.toFixed(2)} TND
+                        Current Price: {currentPrice.toFixed(2)} TND. This is a simulation.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit(onSubmit)}>
@@ -72,7 +72,7 @@ export function TradeModal({ isOpen, onClose, symbol, currentPrice, action = "BU
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
                         <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Confirm Order"}
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Confirm Virtual Order"}
                         </Button>
                     </DialogFooter>
                 </form>

@@ -31,8 +31,8 @@ function AppContent() {
 
       try {
         const user = await api.getMe();
-        // Show quiz if user hasn't completed it (risk_score is 0 and trading_experience is "new")
-        if (user.risk_score === 0 && user.trading_experience === "new") {
+        // Show quiz if user hasn't completed it (risk_score is 0)
+        if (user.risk_score === 0) {
           setShowQuiz(true);
         }
       } catch (e) {
