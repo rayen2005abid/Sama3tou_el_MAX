@@ -9,7 +9,7 @@ from .modules.sentiment import router as sentiment_router
 from .modules.anomaly.router import router as anomaly_router
 from .modules.chatbot.router import router as chatbot_router
 from .modules.decision.router import router as decision_router
-from .routers import forecasting
+from .routers import forecasting, system
 
 # Import models for auto-creation (Core)
 from . import models
@@ -85,6 +85,7 @@ app.include_router(anomaly_router)
 app.include_router(decision_router)
 app.include_router(chatbot_router)
 app.include_router(forecasting.router)
+app.include_router(system.router)
 
 @app.get("/")
 def read_root():

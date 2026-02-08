@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { BarChart3, LineChart, Briefcase, ShieldAlert, User } from "lucide-react";
+import { BarChart3, LineChart, Briefcase, ShieldAlert, User, Cpu } from "lucide-react";
 
 const NAV_ITEMS = [
   { path: "/", label: "Market Overview", icon: BarChart3 },
@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { path: "/portfolio", label: "My Portfolio", icon: Briefcase },
   { path: "/monitoring", label: "Monitoring", icon: ShieldAlert },
   { path: "/chat", label: "AI Advisor", icon: ShieldAlert }, // Reusing icon for now
+  { path: "/models", label: "System Status", icon: Cpu },
   { path: "/profile", label: "Profile", icon: User },
 ];
 

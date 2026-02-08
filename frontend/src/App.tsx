@@ -13,6 +13,7 @@ import Register from "@/pages/Register";
 import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
 import Chatbot from "@/pages/Chatbot";
+import ModelPerformance from "@/pages/ModelPerformance";
 import NotFound from "./pages/NotFound";
 import { QuizModal } from "@/components/QuizModal";
 import { api } from "@/services/api";
@@ -53,6 +54,7 @@ function AppContent() {
         <Route path="/portfolio" element={<Portfolio />} />
         <Route path="/monitoring" element={<AnomalyDetection />} />
         <Route path="/chat" element={<Chatbot />} />
+        <Route path="/models" element={<ModelPerformance />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
