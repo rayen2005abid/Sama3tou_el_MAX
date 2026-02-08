@@ -6,41 +6,49 @@
 - `venv/`: Shared virtual environment for backend
 
 ## Prerequisites
-- Python 3.14+
+- Python 3.10+
 - Node.js (for frontend)
 
-## Quick Start
+## Quick Start (From Scratch)
 
-### 1. Backend Setup & Run
+### 1. Clone & Environment
+```powershell
+git clone https://github.com/rayen2005abid/Sama3tou_el_MAX.git
+cd "Sama3tou_el_MAX"
+```
 
-The virtual environment is located in the root `venv` folder.
-
-**Terminals:** PowerShell
+### 2. Backend Setup
+The backend runs on Python/FastAPI.
 
 ```powershell
-# 1. Activate Virtual Environment
-.\venv\Scripts\Activate.ps1
+# 1. Create Virtual Environment
+python -m venv venv
 
-# 2. Run Backend Server (from root directory)
+# 2. Activate Virtual Environment
+.\venv\Scripts\Activate
+
+# 3. Install Dependencies
+pip install -r requirements.txt
+
+# 4. Run Server
 uvicorn backend.main:app --reload
 ```
-The backend will run at `http://127.0.0.1:8000`.
+*Backend runs at: `http://127.0.0.1:8000`*
 
-### 2. Frontend Setup & Run
-
-Open a **new** terminal for the frontend.
+### 3. Frontend Setup
+The frontend runs on React/Vite. Open a **new** terminal window.
 
 ```powershell
 # 1. Navigate to frontend
 cd frontend
 
-# 2. Install Dependencies (if not already installed)
+# 2. Install Dependencies
 npm install
 
-# 3. Run Frontend
+# 3. Run Dev Server
 npm run dev
 ```
-The frontend will typically run at `http://localhost:5173`.
+*Frontend runs at: `http://localhost:5173`*
 
 ## Troubleshooting
 
