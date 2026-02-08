@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from typing import List
 from pydantic import BaseModel
+from ..services import bvmt_scraper
 
 router = APIRouter(
     prefix="/stocks",
@@ -22,14 +23,28 @@ class Stock(BaseModel):
     open: float
     marketCap: float = 0
 
+
 @router.get("/", response_model=List[Stock])
 async def get_stocks():
-    # Mock data matching frontend
-    return [
-        {"symbol": "SFBT", "name": "Société de Fabrication des Boissons de Tunisie", "sector": "Consumer Goods", "lastPrice": 14.50, "change": 0.20, "changePercent": 1.40, "volume": 15000, "high": 14.60, "low": 14.30, "open": 14.30},
-        {"symbol": "BIAT", "name": "Banque Internationale Arabe de Tunisie", "sector": "Financials", "lastPrice": 88.00, "change": -1.50, "changePercent": -1.68, "volume": 5000, "high": 89.50, "low": 87.50, "open": 89.50},
-        {"symbol": "TT", "name": "Tunisie Telecom", "sector": "Telecommunications", "lastPrice": 3.20, "change": 0.05, "changePercent": 1.59, "volume": 45000, "high": 3.25, "low": 3.10, "open": 3.10},
-    ]
+    scraped_data = bvmt_scraper.get_daily_cotations()
+    stocks = []
+    
+    for item in scraped_data:
+        stocks.append({
+            "symbol": item["symbol"],
+            "name": item["name"],
+            "sector": "Tunis Stock Exchange", # Default sector as we don't have it in the simple table
+            "lastPrice": item["last"],
+            "change": item["last"] * (item["change_percent"] / 100),
+            "changePercent": item["change_percent"],
+            "volume": item["volume"],
+            "high": item.get("high", item["last"]),
+            "low": item.get("low", item["last"]),
+            "open": item.get("open", item["last"]),
+            "marketCap": 0
+        })
+            
+    return stocks
 
 @router.get("/{symbol}")
 async def get_stock_analysis(symbol: str):

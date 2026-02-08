@@ -137,6 +137,16 @@ async def execute_transaction(transaction: schemas.TransactionCreate, current_us
             
         current_user.initial_capital -= total_amount
         
+        # Record Transaction
+        txn = models.Transaction(
+            portfolio_id=portfolio.id,
+            symbol=transaction.symbol,
+            transaction_type="BUY",
+            quantity=transaction.quantity,
+            price=current_price
+        )
+        db.add(txn)
+        
     elif transaction.action.upper() == "SELL":
         holding = db.query(models.PortfolioHolding).filter(
             models.PortfolioHolding.portfolio_id == portfolio.id,
@@ -151,6 +161,16 @@ async def execute_transaction(transaction: schemas.TransactionCreate, current_us
             db.delete(holding)
             
         current_user.initial_capital += total_amount
+        
+        # Record Transaction
+        txn = models.Transaction(
+            portfolio_id=portfolio.id,
+            symbol=transaction.symbol,
+            transaction_type="SELL",
+            quantity=transaction.quantity,
+            price=current_price
+        )
+        db.add(txn)
         
     db.commit()
     return {"status": "success", "new_balance": current_user.initial_capital}

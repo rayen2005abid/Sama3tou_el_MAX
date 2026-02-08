@@ -8,7 +8,7 @@ import AppLayout from "@/components/AppLayout";
 import MarketOverview from "@/pages/MarketOverview";
 import StockAnalysis from "@/pages/StockAnalysis";
 import Portfolio from "@/pages/Portfolio";
-import Monitoring from "@/pages/Monitoring";
+import AnomalyDetection from "@/pages/AnomalyDetection";
 import Register from "@/pages/Register";
 import Login from "@/pages/Login";
 import Profile from "@/pages/Profile";
@@ -16,6 +16,7 @@ import Chatbot from "@/pages/Chatbot";
 import NotFound from "./pages/NotFound";
 import { QuizModal } from "@/components/QuizModal";
 import { api } from "@/services/api";
+import { AnomalyPoller } from "@/components/AnomalyPoller";
 
 const queryClient = new QueryClient();
 
@@ -45,11 +46,12 @@ function AppContent() {
 
   return (
     <AppLayout>
+      <AnomalyPoller />
       <Routes>
         <Route path="/" element={<MarketOverview />} />
         <Route path="/analysis" element={<StockAnalysis />} />
         <Route path="/portfolio" element={<Portfolio />} />
-        <Route path="/monitoring" element={<Monitoring />} />
+        <Route path="/monitoring" element={<AnomalyDetection />} />
         <Route path="/chat" element={<Chatbot />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/register" element={<Register />} />

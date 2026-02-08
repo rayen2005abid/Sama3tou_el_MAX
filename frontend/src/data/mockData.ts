@@ -24,37 +24,71 @@ export const MOCK_INDICES: MarketIndex[] = [
 
 export function generateHistorical(days: number = 90): StockHistorical[] {
   const data: StockHistorical[] = [];
-  let price = 8.0 + Math.random() * 2;
+  let price = 20.0 + Math.random() * 5; // Starting price around 20-25
+  const dt = 1 / 252; // Daily time step
+  const mu = 0.15; // Drift (15% annual return)
+  const sigma = 0.30; // Volatility (30% annual)
+
   const now = new Date();
   for (let i = days; i >= 0; i--) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
-    const change = (Math.random() - 0.48) * 0.3;
-    const open = price;
-    const close = price + change;
-    const high = Math.max(open, close) + Math.random() * 0.15;
-    const low = Math.min(open, close) - Math.random() * 0.15;
-    const volume = Math.floor(50000 + Math.random() * 150000);
-    data.push({ date: date.toISOString().split("T")[0], open: +open.toFixed(2), high: +high.toFixed(2), low: +low.toFixed(2), close: +close.toFixed(2), volume });
-    price = close;
+
+    // Geometric Brownian Motion: dS = S * (mu*dt + sigma*dW)
+    const drift = (mu - 0.5 * sigma * sigma) * dt;
+    const diffusion = sigma * Math.sqrt(dt) * (Math.random() * 2 - 1); // Approximation of Normal(0,1)
+
+    price = price * Math.exp(drift + diffusion);
+
+    // Add some intraday noise
+    const open = price * (1 + (Math.random() - 0.5) * 0.01);
+    const close = price;
+    const high = Math.max(open, close) * (1 + Math.random() * 0.015);
+    const low = Math.min(open, close) * (1 - Math.random() * 0.015);
+
+    // Volume usually higher when price moves a lot
+    const volumeBase = 50000;
+    const volumeNoise = Math.random() * 100000;
+    const priceMove = Math.abs(close - open) / open;
+    const volume = Math.floor(volumeBase + volumeNoise + (priceMove * 1000 * 100)); // Higher volume on bigger moves
+
+    data.push({
+      date: date.toISOString().split("T")[0],
+      open: +open.toFixed(2),
+      high: +high.toFixed(2),
+      low: +low.toFixed(2),
+      close: +close.toFixed(2),
+      volume
+    });
   }
   return data;
 }
 
 export function generateForecast(): PriceForecast[] {
   const data: PriceForecast[] = [];
-  let price = 8.45;
+  let price = 8.45; // Start around current price
+  const dt = 1 / 252;
+  const mu = 0.15; // Drift
+  const sigma = 0.30; // Volatility
+
   const now = new Date();
   for (let i = 1; i <= 5; i++) {
     const date = new Date(now);
     date.setDate(date.getDate() + i);
-    const change = (Math.random() - 0.45) * 0.25;
-    price += change;
+
+    // GBM for next price point
+    const drift = (mu - 0.5 * sigma * sigma) * dt;
+    const diffusion = sigma * Math.sqrt(dt) * (Math.random() * 2 - 1);
+    price = price * Math.exp(drift + diffusion);
+
+    // Confidence interval widens with time (sqrt(t))
+    const volatility = sigma * Math.sqrt(i / 252);
+
     data.push({
       date: date.toISOString().split("T")[0],
       predicted: +price.toFixed(2),
-      lower: +(price - 0.15 - Math.random() * 0.1).toFixed(2),
-      upper: +(price + 0.15 + Math.random() * 0.1).toFixed(2),
+      lower: +(price * (1 - 1.96 * volatility)).toFixed(2), // 95% CI
+      upper: +(price * (1 + 1.96 * volatility)).toFixed(2),
     });
   }
   return data;

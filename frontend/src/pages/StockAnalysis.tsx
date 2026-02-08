@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
-import type { Stock, StockHistorical, PriceForecast, SentimentData, Recommendation } from "@/types/trading";
+import type { Stock, StockHistorical, PriceForecast, SentimentData, Recommendation, SentimentSignal, NewsArticle } from "@/types/trading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -18,6 +18,8 @@ export default function StockAnalysis() {
   const [history, setHistory] = useState<StockHistorical[]>([]);
   const [forecast, setForecast] = useState<PriceForecast[]>([]);
   const [sentiment, setSentiment] = useState<SentimentData[]>([]);
+  const [sentimentSignal, setSentimentSignal] = useState<SentimentSignal | null>(null);
+  const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [showExplain, setShowExplain] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
@@ -33,7 +35,15 @@ export default function StockAnalysis() {
       api.getStockHistory(selected),
       api.getStockForecast(selected),
       api.getStockSentiment(selected),
-    ]).then(([h, f, s]) => { setHistory(h); setForecast(f); setSentiment(s); });
+      api.getLatestSentiment(selected),
+      api.getSentimentArticles(selected),
+    ]).then(([h, f, s, sig, arts]) => {
+      setHistory(h);
+      setForecast(f);
+      setSentiment(s);
+      setSentimentSignal(sig);
+      setArticles(arts);
+    });
   }, [selected]);
 
   const currentStock = stocks.find(s => s.symbol === selected);
@@ -101,6 +111,47 @@ export default function StockAnalysis() {
         </Card>
       )}
 
+      {/* Forecast Summary Cards */}
+      {forecast.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="glass-card bg-primary/5 border-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" /> Tomorrow's Forecast (T+1)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-mono">
+                {forecast[0].predicted.toFixed(2)} <span className="text-sm font-normal text-muted-foreground">TND</span>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="outline" className="text-[10px] bg-background/50">
+                  Range: {forecast[0].lower.toFixed(2)} - {forecast[0].upper.toFixed(2)}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card bg-primary/5 border-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" /> 5-Day Target (T+5)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-mono">
+                {forecast[forecast.length - 1].predicted.toFixed(2)} <span className="text-sm font-normal text-muted-foreground">TND</span>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="outline" className="text-[10px] bg-background/50">
+                  Range: {forecast[forecast.length - 1].lower.toFixed(2)} - {forecast[forecast.length - 1].upper.toFixed(2)}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Price chart + forecast */}
       <Card className="glass-card">
         <CardHeader className="pb-2">
@@ -112,26 +163,68 @@ export default function StockAnalysis() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Sentiment */}
+        {/* Sentiment Analysis */}
         <Card className="glass-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <MessageSquare className="w-4 h-4" /> Sentiment Timeline
+              <MessageSquare className="w-4 h-4" /> Market Sentiment
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={sentiment.slice(-14)}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 18%)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(215, 15%, 50%)" }} tickFormatter={v => v.slice(5)} />
-                  <YAxis domain={[-1, 1]} tick={{ fontSize: 10, fill: "hsl(215, 15%, 50%)" }} />
-                  <Tooltip contentStyle={{ background: "hsl(220, 18%, 10%)", border: "1px solid hsl(220, 15%, 18%)", borderRadius: 8, fontSize: 12 }} />
-                  <ReferenceLine y={0} stroke="hsl(215, 15%, 50%)" strokeDasharray="3 3" />
-                  <Line type="monotone" dataKey="score" stroke="hsl(38, 92%, 55%)" strokeWidth={2} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            {sentimentSignal ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className={`text-xl font-bold ${sentimentSignal.sentiment_score > 0 ? "text-gain" : sentimentSignal.sentiment_score < 0 ? "text-loss" : "text-muted-foreground"}`}>
+                      {(sentimentSignal.sentiment_score * 100).toFixed(0)}%
+                    </span>
+                    <p className="text-xs text-muted-foreground uppercase">{sentimentSignal.sentiment_label}</p>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {sentimentSignal.article_count} Articles
+                  </Badge>
+                </div>
+
+                {/* Score Bar */}
+                <div className="h-2 bg-secondary rounded-full overflow-hidden relative">
+                  <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-foreground/20 z-10" />
+                  <div
+                    className={`h-full transition-all ${sentimentSignal.sentiment_score > 0 ? "bg-gain" : "bg-loss"}`}
+                    style={{
+                      width: `${Math.abs(sentimentSignal.sentiment_score * 50)}%`,
+                      marginLeft: sentimentSignal.sentiment_score > 0 ? '50%' : `${50 - Math.abs(sentimentSignal.sentiment_score * 50)}%`
+                    }}
+                  />
+                </div>
+
+                {/* News List */}
+                <div className="space-y-3 pt-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Recent News</p>
+                  {articles.length > 0 ? (
+                    articles.slice(0, 3).map((art) => (
+                      <div key={art.id} className="text-xs border-b border-border/50 pb-2 last:border-0">
+                        <a href={art.url} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline font-medium line-clamp-1">
+                          {art.title}
+                        </a>
+                        <div className="flex justify-between text-muted-foreground mt-1">
+                          <span>{art.source}</span>
+                          <span>{new Date(art.published_date).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No recent articles parsed.</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground text-sm gap-2">
+                <p>No sentiment data available for {selected}</p>
+                <Button variant="outline" size="sm" onClick={() => api.getLatestSentiment(selected).then(setSentimentSignal)}>
+                  Force Analysis
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

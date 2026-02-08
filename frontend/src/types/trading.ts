@@ -31,11 +31,40 @@ export interface PriceForecast {
   upper: number;
 }
 
+export interface ForecastResponse {
+  ticker: string;
+  current_price: number;
+  prediction_t1: number;
+  log_return_t1: number;
+  log_return_t5: number;
+}
+
 export interface SentimentData {
   date: string;
   score: number; // -1 to 1
   label: "positive" | "negative" | "neutral";
   articleCount: number;
+}
+
+export interface SentimentSignal {
+  id: number;
+  stock_symbol: string;
+  sentiment_score: number;
+  sentiment_label: string;
+  confidence: number;
+  article_count: number;
+  date: string;
+}
+
+export interface NewsArticle {
+  id: number;
+  stock_symbol: string;
+  title: string;
+  url: string;
+  source: string;
+  published_date: string;
+  sentiment_score: number;
+  language: string;
 }
 
 export interface Anomaly {

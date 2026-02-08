@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
-import type { PortfolioSummary } from "@/types/trading";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { PortfolioSummary, Recommendation } from "@/types/trading";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Wallet, TrendingUp, ArrowUpRight, ArrowDownRight, ShieldCheck, BadgeDollarSign } from "lucide-react";
+import { Wallet, TrendingUp, ArrowUpRight, ArrowDownRight, ShieldCheck, BadgeDollarSign, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TradeModal } from "@/components/TradeModal";
+import {
+  Tooltip as UiTooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const COLORS = [
   "hsl(185, 70%, 50%)", "hsl(145, 65%, 45%)", "hsl(38, 92%, 55%)",
@@ -15,6 +21,7 @@ const COLORS = [
 
 export default function Portfolio() {
   const [portfolio, setPortfolio] = useState<PortfolioSummary | null>(null);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [tradeModalOpen, setTradeModalOpen] = useState(false);
   const [selectedStock, setSelectedStock] = useState<string>("");
   const [selectedPrice, setSelectedPrice] = useState<number>(0);
@@ -24,7 +31,10 @@ export default function Portfolio() {
     api.getPortfolio().then(setPortfolio);
   };
 
-  useEffect(() => { refreshPortfolio(); }, []);
+  useEffect(() => {
+    refreshPortfolio();
+    api.getRecommendations().then(setRecommendations);
+  }, []);
 
   const handleTrade = (stock: string, price: number, action: "BUY" | "SELL") => {
     setSelectedStock(stock);
@@ -37,18 +47,29 @@ export default function Portfolio() {
 
   const pieData = portfolio.positions.map(p => ({ name: p.symbol, value: p.allocation }));
 
-  // Mock capital evolution
+  // Mock capital evolution (using real PnL direction for slope)
   const capitalEvolution = Array.from({ length: 30 }, (_, i) => {
-    const base = 10000 + (i / 29) * portfolio.totalPnl;
-    const noise = (Math.random() - 0.5) * 300;
+    const startValue = 10000;
+    const progress = i / 29;
+    // Linear interpolation from start to current total value
+    const base = startValue + (portfolio.totalValue - startValue) * progress;
+    const noise = (Math.random() - 0.5) * 100;
     return { day: i + 1, value: +(base + noise).toFixed(0) };
   });
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">My Portfolio</h1>
-        <p className="text-sm text-muted-foreground">Virtual portfolio · 10,000 TND initial capital</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">My Portfolio</h1>
+          <p className="text-sm text-muted-foreground">Virtual portfolio · Simulation Mode</p>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => handleTrade("SFBT", 14.5, "BUY")}>
+            <BadgeDollarSign className="w-4 h-4 mr-2" />
+            Quick Trade
+          </Button>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -101,24 +122,16 @@ export default function Portfolio() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex flex-wrap gap-2 justify-center mt-2">
-              {pieData.map((p, i) => (
-                <span key={p.name} className="text-[10px] flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
-                  {p.name} {p.value}%
-                </span>
-              ))}
-            </div>
           </CardContent>
         </Card>
 
         {/* Capital evolution */}
         <Card className="glass-card lg:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Capital Evolution (30 days)</CardTitle>
+            <CardTitle className="text-sm font-medium">Performance History</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[250px]">
+            <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={capitalEvolution}>
                   <defs>
@@ -128,8 +141,8 @@ export default function Portfolio() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 18%)" />
-                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: "hsl(215, 15%, 50%)" }} />
-                  <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10, fill: "hsl(215, 15%, 50%)" }} />
+                  <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+                  <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10 }} />
                   <Tooltip contentStyle={{ background: "hsl(220, 18%, 10%)", border: "1px solid hsl(220, 15%, 18%)", borderRadius: 8, fontSize: 12 }} />
                   <Area type="monotone" dataKey="value" stroke="hsl(145, 65%, 45%)" fill="url(#capGrad)" strokeWidth={2} />
                 </AreaChart>
@@ -137,6 +150,63 @@ export default function Portfolio() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* AI Recommendations */}
+      <h2 className="text-xl font-bold mt-4 flex items-center gap-2">
+        <Lightbulb className="w-5 h-5 text-yellow-500" />
+        AI Trading Recommendations
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {recommendations.map((rec) => (
+          <Card key={rec.symbol} className="glass-card border-l-4" style={{ borderLeftColor: rec.action === "BUY" ? "green" : (rec.action === "SELL" ? "red" : "gray") }}>
+            <CardHeader className="p-4 pb-2">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-lg">{rec.symbol}</CardTitle>
+                  <CardDescription className="text-xs">Based on Forecast & Sentiment</CardDescription>
+                </div>
+                <Badge variant={rec.action === "BUY" ? "default" : (rec.action === "SELL" ? "destructive" : "secondary")}>
+                  {rec.action}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-2 space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Confidence:</span>
+                <span className="font-bold">{(rec.confidence * 100).toFixed(0)}%</span>
+              </div>
+
+              <div className="text-xs text-muted-foreground bg-secondary/50 p-2 rounded">
+                {rec.reason}
+              </div>
+
+              <div className="flex gap-2">
+                <TooltipProvider>
+                  <UiTooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full text-xs h-7">Explain Decision</Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[300px]">
+                      <p className="font-semibold mb-1">Signals used:</p>
+                      <ul className="list-disc pl-4 text-xs space-y-1">
+                        {rec.signals && rec.signals.map((s, i) => <li key={i}>{s}</li>)}
+                      </ul>
+                    </TooltipContent>
+                  </UiTooltip>
+                </TooltipProvider>
+                <Button
+                  className="w-full h-7 text-xs"
+                  size="sm"
+                  onClick={() => handleTrade(rec.symbol, 0, rec.action as "BUY" | "SELL")} // Price 0 triggers lookup in modal (or we should pass current price)
+                  disabled={rec.action === "HOLD"}
+                >
+                  Execute
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Positions table */}
@@ -162,7 +232,6 @@ export default function Portfolio() {
                 <tr key={p.symbol} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
                   <td className="p-3">
                     <span className="font-medium">{p.symbol}</span>
-                    <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">{p.stock}</span>
                   </td>
                   <td className="text-right p-3 font-mono">{p.quantity}</td>
                   <td className="text-right p-3 font-mono">{p.avgPrice.toFixed(2)}</td>

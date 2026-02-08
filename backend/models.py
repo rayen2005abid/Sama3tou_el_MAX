@@ -57,3 +57,27 @@ class PortfolioHolding(Base):
     quantity = Column(Integer)
     purchase_price = Column(Float)
     current_price = Column(Float) # cached or updated
+
+class Anomaly(Base):
+    __tablename__ = "anomalies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    stock_symbol = Column(String, index=True)
+    anomaly_type = Column(String) # VOLUME_SPIKE, PRICE_SHOCK, PATTERN
+    description = Column(String)
+    metric_value = Column(Float) # e.g. volume value or % change
+    confidence = Column(Float, default=1.0)
+    detected_at = Column(DateTime, default=datetime.utcnow)
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    portfolio_id = Column(Integer, ForeignKey("portfolios.id"))
+    portfolio = relationship("Portfolio")
+    
+    symbol = Column(String)
+    transaction_type = Column(String) # BUY, SELL
+    quantity = Column(Integer)
+    price = Column(Float)
+    timestamp = Column(DateTime, default=datetime.utcnow)

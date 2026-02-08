@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from typing import List
 from pydantic import BaseModel
+from ..services import bvmt_scraper
 
 router = APIRouter(
     prefix="/market",
@@ -14,11 +15,20 @@ class MarketIndex(BaseModel):
     change: float
     changePercent: float
 
+
 @router.get("/indices", response_model=List[MarketIndex])
 async def get_indices():
+    scraped_data = bvmt_scraper.get_tunindex_data()
+    
+    val = scraped_data.get("value", 9850.50)
+    chg_pct = scraped_data.get("change", 0.05)
+    # Approximate point change
+    chg = val * (chg_pct / 100)
+    
     return [
-        {"name": "TUNINDEX", "value": 8500.23, "change": 38.45, "changePercent": 0.45},
-        {"name": "TUNINDEX20", "value": 3800.12, "change": 12.32, "changePercent": 0.32},
+        {"name": "TUNINDEX", "value": val, "change": float(chg), "changePercent": float(chg_pct)},
+            # Mock TUNINDEX20 relative to TUNINDEX or fixed
+        {"name": "TUNINDEX20", "value": val * 0.45, "change": float(chg * 0.45), "changePercent": float(chg_pct)},
     ]
 
 @router.get("/recommendations")
@@ -28,22 +38,17 @@ async def get_recommendations():
         {"stock": "Banque Internationale Arabe de Tunisie", "symbol": "BIAT", "action": "HOLD", "confidence": 0.60, "reason": "Consolidating near all-time highs", "signals": ["RSI Neutral"]},
     ]
 
+
 # Old overview endpoint (might not be needed if frontend calls individual endpoints)
 @router.get("/overview")
 async def get_market_overview():
+    indices = await get_indices()
+    palmares = bvmt_scraper.get_palmares_data()
+    
     return {
-        "indices": [
-            {"name": "TUNINDEX", "value": 8500.23, "change": 0.45},
-            {"name": "TUNINDEX20", "value": 3800.12, "change": 0.32},
-        ],
-        "top_gainers": [
-            {"symbol": "SFBT", "change": 2.5},
-            {"symbol": "BIAT", "change": 1.8},
-        ],
-        "top_losers": [
-            {"symbol": "SERVICOM", "change": -3.2},
-            {"symbol": "UADH", "change": -2.1},
-        ],
+        "indices": indices,
+        "top_gainers": palmares.get("gainers", []),
+        "top_losers": palmares.get("losers", []),
         "global_sentiment": "Neutral",
-        "recent_alerts": 2
+        "recent_alerts": 0
     }

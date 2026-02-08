@@ -17,26 +17,21 @@ export default function Chatbot() {
         api.getMe().then(setUserProfile).catch(console.error);
     }, []);
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!input.trim()) return;
 
         const newMessages = [...messages, { role: "user", content: input }];
         setMessages(newMessages);
         setInput("");
 
-        // Simulate AI response with context
-        setTimeout(() => {
-            let contextInfo = "";
-            if (userProfile) {
-                contextInfo = `(Context: Experience=${userProfile.trading_experience}, Risk=${userProfile.risk_score}/10) `;
-            }
-
-            const response = {
-                role: "assistant",
-                content: `${contextInfo}I received your message: "${input}". This is a placeholder for the AI response.`
-            };
-            setMessages([...newMessages, response]);
-        }, 1000);
+        try {
+            // Updated to use real backend service
+            const response = await api.chat(input);
+            setMessages([...newMessages, { role: "assistant", content: response.answer }]);
+        } catch (error) {
+            console.error("Chat error:", error);
+            setMessages([...newMessages, { role: "assistant", content: "Sorry, I encountered an error connecting to the server. Please try again later." }]);
+        }
     };
 
     return (

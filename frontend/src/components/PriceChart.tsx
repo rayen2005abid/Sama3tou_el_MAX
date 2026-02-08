@@ -15,46 +15,88 @@ interface PriceChartProps {
 
 // Custom candlestick shape for Recharts Bar
 const CandlestickShape = (props: any) => {
-  const { x, y, width, height, payload } = props;
+  const { x, y, width, height, payload, yAxis } = props;
   if (!payload) return null;
+
   const { open, close, high, low } = payload;
   const isUp = close >= open;
+  const isDoji = Math.abs(open - close) < 0.001;
   const color = isUp ? "hsl(145, 70%, 45%)" : "hsl(0, 75%, 55%)";
 
-  // Scale: y is top of bar, height is bar height (negative means going up)
-  const yScale = props.background?.height || 200;
-  const yMin = props.yAxis?.y ?? y;
+  let yHigh, yLow, bodyTop, bodyHeight;
 
-  // Use the y-axis scale from the chart
-  const barTop = Math.min(y, y + height);
-  const barBottom = Math.max(y, y + height);
-  const barHeight = barBottom - barTop;
+  // Method 1: Try using yAxis scale
+  if (yAxis && typeof yAxis.scale === 'function') {
+    try {
+      yHigh = yAxis.scale(high);
+      yLow = yAxis.scale(low);
+      const yOpen = yAxis.scale(open);
+      const yClose = yAxis.scale(close);
 
-  // Wick positions relative to the bar
+      if (!isNaN(yHigh) && !isNaN(yLow) && !isNaN(yOpen) && !isNaN(yClose)) {
+        bodyTop = Math.min(yOpen, yClose);
+        bodyHeight = Math.max(Math.abs(yOpen - yClose), 2);
+      }
+    } catch (e) {
+      // Fallback to Method 2
+    }
+  }
+
+  // Method 2: Ratio based on bar dimensions (Fallback if Method 1 failed or returned NaN)
+  // Recharts passes 'y' as the top of the bar, 'height' as the height.
+  // The bar represents the range [min(open, close), max(open, close)].
+  if (bodyTop === undefined) {
+    if (!isDoji && height > 0) {
+      const priceRange = Math.abs(open - close);
+      const pixelsPerUnit = height / priceRange;
+
+      const maxBodyPrice = Math.max(open, close);
+      const minBodyPrice = Math.min(open, close);
+
+      // Extrapolate high/low positions relative to the body
+      // Top of chart is y=0. Higher price = Lower Y.
+      yHigh = y - (high - maxBodyPrice) * pixelsPerUnit;
+      yLow = y + height + (minBodyPrice - low) * pixelsPerUnit;
+
+      bodyTop = y;
+      bodyHeight = height;
+    } else {
+      // Doji or invalid height without axis access
+      // We can't determine scale. Draw body at 'y' (or max if range is inverted in props?)
+      // For safety, just draw the body.
+      bodyTop = y;
+      bodyHeight = Math.max(height, 2);
+
+      // Set wicks to center of body (invisible/stub) as we can't scale them
+      yHigh = y + bodyHeight / 2;
+      yLow = y + bodyHeight / 2;
+    }
+  }
+
   const wickX = x + width / 2;
 
   return (
     <g>
-      {/* Wick (high to low) */}
+      {/* Wick (High to Low) */}
       <line
         x1={wickX}
-        y1={barTop - 2}
+        y1={yHigh}
         x2={wickX}
-        y2={barBottom + 2}
+        y2={yLow}
         stroke={color}
         strokeWidth={1.5}
       />
       {/* Body */}
       <rect
         x={x + 2}
-        y={barTop}
+        y={bodyTop}
         width={Math.max(width - 4, 4)}
-        height={Math.max(barHeight, 2)}
-        fill={isUp ? color : color}
+        height={bodyHeight}
+        fill={isUp ? (isDoji ? "transparent" : color) : color}
         stroke={color}
-        strokeWidth={1}
+        strokeWidth={1.5}
         rx={1}
-        fillOpacity={isUp ? 0.3 : 0.8}
+        fillOpacity={isUp ? 0.3 : 0.9}
       />
     </g>
   );

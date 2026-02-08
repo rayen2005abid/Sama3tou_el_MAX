@@ -11,3 +11,11 @@ numpy
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
+beautifulsoup4
+lxml
+textblob
+schedule
+nltk
+apscheduler
+google-genai
+pydantic-settings
