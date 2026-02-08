@@ -5,6 +5,9 @@ __pycache__/
 *$py.class
 venv/
 .env
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Database
 *.db
@@ -12,7 +15,9 @@ venv/
 
 # Node/Frontend
 node_modules/
+frontend/node_modules/
 dist/
+frontend/dist/
 .DS_Store
 coverage/
 .vscode/
@@ -20,3 +25,8 @@ coverage/
 
 # Backend specific
 backend/__pycache__/
+forecasting/__pycache__/
+forecasting/artifacts/
+
+# System
+thumbs.db

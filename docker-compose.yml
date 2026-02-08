@@ -1,0 +1,40 @@
+services:
+  backend:
+    container_name: sama3tou-backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+      - ./forecasting:/app/forecasting
+      - ./Datasets:/app/Datasets
+      - ./stocks.json:/app/stocks.json
+      # Persist SQLite DB
+      - trading_data:/app/trading_data
+    environment:
+      - DATABASE_URL=sqlite:///./trading_data/trading.db
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+    networks:
+      - app-network
+
+  frontend:
+    container_name: sama3tou-frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  trading_data:
